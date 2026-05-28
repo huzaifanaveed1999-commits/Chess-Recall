@@ -1,0 +1,323 @@
+<!-- 
+  ========================================================================
+  [CHRONOLOGICAL EXECUTION MAP]
+  STEP 1: ENTRY POINT - The browser loads this HTML file.
+  - The browser reads the markup sequentially from top to bottom.
+  - STEP 1.1: Links the CSS stylesheet (triggers STEP 2 in 'styles.css').
+  - STEP 1.2: Loads the external chess.js validation CDN library.
+  - STEP 1.3: Loads 'app.js' (triggers STEP 3 in 'app.js' for state initialization).
+  ========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Recall - Active Memory Trainer</title>
+  
+  <!-- STEP 1.1: Triggers STEP 2 in 'styles.css' (Layout & Styles Setup) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=8">
+  
+  <!-- STEP 1.2: Loads Chess.js rules validator CDN globally before app.js execution -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div class="app-container">
+    
+    <!-- Sidebar / Library -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <h1>ChessRecall</h1>
+        </div>
+        <p class="brand-tagline">Active Memory Trainer</p>
+      </div>
+
+      <div class="library-section">
+        <div class="section-title-row">
+          <h2>Game Library</h2>
+          <!-- STEP 5.1: Click triggers showModal() inside setupEventListeners() in 'app.js' -->
+          <button id="importBtn" class="btn btn-sm btn-gold">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Import PGN
+          </button>
+        </div>
+        
+        <!-- STEP 4.5: Saved Games list container - populated by renderLibrary() in 'app.js' -->
+        <div id="savedGamesList" class="saved-games-list">
+          <div class="empty-library">
+            <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            <p>Your library is empty.</p>
+            <span>Import a single game PGN to start memorizing.</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      
+      <!-- Top Status Header (STEP 7: Populated dynamically in startStudy() in 'app.js') -->
+      <header class="app-header">
+        <div class="active-game-info">
+          <h2 id="gameTitle">No Game Loaded</h2>
+          <p id="gamePlayers" class="players-sub">Select or import a game to practice your recall</p>
+        </div>
+        <div class="header-stats">
+          <div class="stat-badge">
+            <span class="label">Best Recall</span>
+            <span id="bestScoreVal" class="value text-gold">-</span>
+          </div>
+          <div class="stat-badge">
+            <span class="label">Mistakes</span>
+            <span id="headerMistakes" class="value text-red">0</span>
+          </div>
+          <div class="stat-badge">
+            <span class="label">Memory Index</span>
+            <span id="memoryBadge" class="value text-emerald">-</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Grid Panel Workspace -->
+      <div class="workspace-grid">
+        
+        <!-- STEP 8: Board Section -->
+        <div class="board-column">
+          <!-- Dynamic Spaced-Repetition Review Mode Banner (Positioned above board, never blocking) -->
+          <div id="reviewBanner" class="review-banner">
+            <div class="review-badge-pulse"></div>
+            <span>Review Mode: Recall Missed Moves 🧠</span>
+          </div>
+
+          <div class="board-container">
+            <div id="board" class="board"></div>
+            
+            <!-- STEP 10.2: Mistake Overlay - triggered in handleRecallMistake() inside 'app.js' -->
+            <div id="mistakeOverlay" class="board-overlay mistake-overlay">
+              <div class="overlay-card glass animate-shake">
+                <div class="overlay-icon error-circle">✕</div>
+                <h3>Incorrect Move!</h3>
+                <p id="mistakeMoveText">The correct move was: <strong>...</strong></p>
+                <div class="progress-bar">
+                  <div id="overlayResetProgress" class="progress-fill"></div>
+                </div>
+                <p id="mistakeSubText" class="overlay-sub">Backtracking 5 moves to retry...</p>
+              </div>
+            </div>
+
+            <!-- STEP 10.1: Success Overlay - triggered in handleRecallSuccess() inside 'app.js' -->
+            <div id="successOverlay" class="board-overlay success-overlay">
+              <div class="overlay-card glass animate-pop" style="max-width: 420px;">
+                <div class="overlay-icon success-circle">🏆</div>
+                <h2>Game Memorized!</h2>
+                <p id="successDesc">You completed the entire sequence perfectly.</p>
+                <div class="score-breakdown">
+                  <div class="final-score-circle">
+                    <span id="successScore">100</span>
+                    <span class="score-label">Score</span>
+                  </div>
+                  <div class="stats-row">
+                    <div>
+                      <span class="stat-sub">Mistakes</span>
+                      <strong id="successMistakes">0</strong>
+                    </div>
+                    <div>
+                      <span class="stat-sub">Attempts</span>
+                      <strong id="successAttempts">1</strong>
+                    </div>
+                  </div>
+
+                  <!-- Mistakes Analytics Hotspots -->
+                  <div id="hotspotsBox" class="hidden" style="width: 100%; margin-top: 0.5rem;">
+                    <span class="stat-sub" style="font-size: 0.65rem; text-transform: uppercase;">Mistake Hotspots</span>
+                    <div id="successHotspots" class="hotspots-container">
+                      <!-- Dynamic mistake items -->
+                    </div>
+                  </div>
+
+                  <!-- Spaced Repetition scheduler -->
+                  <div class="review-scheduler">
+                    <span class="scheduler-title">Schedule Next Review</span>
+                    <div class="scheduler-buttons">
+                      <button id="sched1DayBtn" class="btn btn-secondary btn-sched">1 Day</button>
+                      <button id="sched3DaysBtn" class="btn btn-secondary btn-sched">3 Days</button>
+                      <button id="sched7DaysBtn" class="btn btn-secondary btn-sched">7 Days</button>
+                    </div>
+                  </div>
+
+                </div>
+                <button id="successCloseBtn" class="btn btn-gold btn-block">Back to Library</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Training Dashboard / Sidebar -->
+        <div class="dashboard-column">
+          
+          <!-- Welcome panel shown by default -->
+          <div id="welcomePanel" class="study-card welcome-card glass">
+            <div class="welcome-hero">
+              <div class="welcome-logo">♟</div>
+              <h3>Train Your Chess Memory</h3>
+              <p>Active Recall is the most powerful technique to memorize opening repertoires and full master games.</p>
+              <ul class="welcome-bullets">
+                <li>Paste any single-game PGN containing tag headers and moves.</li>
+                <li>Play the moves on the board in sequence (Drag or Tap).</li>
+                <li>If you make a mistake, we backtrack you 5 moves back to retry!</li>
+                <li>At the end of the game, review missed moves just like on Chessable.</li>
+                <li>Beat your mistakes, schedule spaced reviews, and master the lines!</li>
+              </ul>
+              <!-- STEP 5.1: Click triggers showModal() inside setupEventListeners() in 'app.js' -->
+              <button id="welcomeImportBtn" class="btn btn-gold btn-lg btn-block">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Import Chess PGN
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 7: Practice Panel - shown after startStudy() in 'app.js' hides the welcome panel -->
+          <div id="studyPanel" class="study-card glass hidden">
+            
+            <div class="progress-section">
+              <div class="progress-labels">
+                <span class="progress-title">Recall Progress</span>
+                <span id="moveRatioText">0 / 0 Moves</span>
+              </div>
+              <div class="progress-track">
+                <div id="studyProgressFill" class="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Active study stats (STEP 7: Updated by updateStudyProgress() in 'app.js') -->
+            <div class="study-stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="study-stat-item">
+                <span class="stat-label">Timer</span>
+                <strong id="statTimer" class="stat-val timer-val">00:00</strong>
+              </div>
+              <div class="study-stat-item">
+                <span class="stat-label">Attempt</span>
+                <strong id="statAttemptNum" class="stat-val">1</strong>
+              </div>
+              <div class="study-stat-item">
+                <span class="stat-label">Mistakes</span>
+                <strong id="statMistakeNum" class="stat-val text-red">0</strong>
+              </div>
+              <div class="study-stat-item">
+                <span class="stat-label">Next</span>
+                <strong id="statNextPlayer" class="stat-val text-gold">White</strong>
+              </div>
+            </div>
+
+            <!-- Move timeline display -->
+            <div class="timeline-container">
+              <span class="timeline-title">Game Moves Timeline</span>
+              <div id="moveHistoryTimeline" class="move-timeline">
+                <!-- Move bubbles injected here dynamically -->
+              </div>
+            </div>
+
+            <!-- Control Buttons Footer -->
+            <div class="study-controls">
+              <button id="resetStudyBtn" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="btn-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3m0 0l3 3m-3-3v8" />
+                </svg>
+                Reset Run
+              </button>
+              <button id="flipBoardBtn" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="btn-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                Flip Board
+              </button>
+              <button id="hintBtn" class="btn btn-hint">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="btn-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Show Hint
+              </button>
+              <button id="deleteGameBtn" class="btn btn-danger">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="btn-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Game
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Glassmorphic Modal: Paste PGN -->
+  <div id="pgnModal" class="modal-overlay">
+    <div class="modal glass animate-pop">
+      <div class="modal-header">
+        <h3>Import Chess PGN</h3>
+        <button id="closeModalBtn" class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div id="pgnError" class="modal-error hidden">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="pgnErrorText">Error messages go here.</span>
+        </div>
+
+        <p class="modal-help-text">Paste the Portable Game Notation (PGN) of a single chess game. Multi-game files will be rejected.</p>
+        
+        <div class="textarea-container">
+          <textarea id="pgnInput" placeholder="[Event &quot;Casual Game&quot;]&#10;[White &quot;Osama&quot;]&#10;[Black &quot;Stockfish&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 ..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+        <!-- STEP 5.2: Triggers handlePgnSubmit() inside 'app.js' -->
+        <button id="savePgnBtn" class="btn btn-gold">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="btn-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Save & Load Game
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Toggle Bar in App Footer -->
+  <footer class="app-footer">
+    <button id="soundToggle" class="sound-toggle btn-icon-only">
+      <svg id="soundIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+      </svg>
+      Sound Enabled
+    </button>
+    <span class="footer-credit">Designed with excellence • Antigravity 2026</span>
+  </footer>
+
+  <!-- STEP 1.3: Triggers STEP 3 in 'app.js' (Executes main application script parsing) -->
+  <script src="app.js?v=8"></script>
+</body>
+</html>
